@@ -1,62 +1,58 @@
 package com.greatlearning.employee.security;
 
+import javax.sql.DataSource;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.builders.WebSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-
-import com.greatlearning.employee.dao.UserDetailsServiceImpl;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 
 @Configuration
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 	
 	
-	
-	@Bean
-	public UserDetailsService userDetailsService() {
-		return new UserDetailsServiceImpl();
-	}
-	
-	
-	@Bean
-	public BCryptPasswordEncoder passwordEncoder() {
-		return new BCryptPasswordEncoder();
-	}
-	
-	@Bean
-	public DaoAuthenticationProvider authenticationProvider() {
-		DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-		authProvider.setUserDetailsService(userDetailsService());
-		authProvider.setPasswordEncoder(passwordEncoder());
-		
-		return authProvider;
-		
-	}
-	
+	@Autowired
+	DataSource dataSource;
+
+	private static final String[] AUTH_WHITELIST = {
+	        "/swagger-resources/**",
+	        "/swagger-ui.html",
+	        "/v2/api-docs",
+	        "/webjars/**",
+	        "/h2-console/**"
+	};
 	
 	@Override
-	protected void configure(AuthenticationManagerBuilder auth) throws Exception{
-		auth.authenticationProvider(authenticationProvider());
-	}
-	
-	
-	
-	@Override
-	protected void configure(HttpSecurity http) throws Exception{
-		http.authorizeRequests()
-		.antMatchers("/", "/employee/save", "/employee/showFormforAdd", "employee/403").hasAnyAuthority("USER", "ADMIN")
-		.antMatchers("/employee/showFormforUpdate", "/employee/delete").hasAuthority("ADMIN")
-		.anyRequest().authenticated()
-		.and().formLogin().loginProcessingUrl("/login").permitAll()
-		.and().logout().logoutSuccessUrl("/login").permitAll()
-		.and().exceptionHandling().accessDeniedPage("/employee/403")
-		.and().cors()
-		.and().csrf().disable();
+	protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+		auth.jdbcAuthentication().dataSource(dataSource).withDefaultSchema()
+				.withUser(User.withUsername("ADMIN").password(getPasswordEncoder().encode("ADMIN")).roles("ADMIN"))
+				.withUser(User.withUsername("USER").password(getPasswordEncoder().encode("USER")).roles("USER"));
 	}
 
+	@Bean
+	PasswordEncoder getPasswordEncoder() {
+		return new BCryptPasswordEncoder();
+	}
+
+	@Override
+	public void configure(WebSecurity web) throws Exception {
+		web.ignoring().antMatchers(AUTH_WHITELIST);
+	}
+
+	@Override
+	protected void configure(HttpSecurity http) throws Exception {
+		http.csrf().disable().authorizeRequests()
+				.antMatchers("/employee/addEmployee", "/employee/updateEmployee", "/employee/deleteEmployeeByid")
+				.hasRole("ADMIN")
+				.antMatchers("/employee/list", "/employee/sortedList", "/employee/findById", "/employee/findByName")
+				.hasAnyRole("USER", "ADMIN").antMatchers("/").permitAll().and().formLogin();
+	}
 }
