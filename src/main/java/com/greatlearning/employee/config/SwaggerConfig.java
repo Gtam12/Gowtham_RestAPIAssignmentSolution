@@ -1,35 +1,52 @@
 package com.greatlearning.employee.config;
 
 
+import org.hibernate.sql.Select;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import springfox.documentation.builders.ApiInfoBuilder;
 import springfox.documentation.builders.PathSelectors;
 import springfox.documentation.builders.RequestHandlerSelectors;
-
+import springfox.documentation.service.ApiInfo;
 import springfox.documentation.spi.DocumentationType;
 import springfox.documentation.spring.web.plugins.Docket;
+import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 
 
 
 @Configuration
+@EnableSwagger2
 public class SwaggerConfig {
 	
+	@Value("localhost:8081")
+	private String hostName;
 	
 
 
 		@Bean
 		public Docket employeeAPI() {
 			
-			return new Docket(DocumentationType.SWAGGER_2)
-					.select()
-					.paths(PathSelectors.ant("/api/*"))
-					.apis(RequestHandlerSelectors.basePackage("com.greatlearning.employee"))
+			return new Docket(DocumentationType.SWAGGER_2).host(hostName)
+					.apiInfo(apiInfo()).groupName("EMS-API").select()
+					.apis(RequestHandlerSelectors.basePackage("com.greatlearning.employee.controller"))
 					.build();
 			
 		
 		}
+		
+		
+		private ApiInfo apiInfo() {
+			return new ApiInfoBuilder().title("Employee Management System API")
+					.description("Employee Management API reference for developers")
+					.license("Employee Management License 1.0").version("1.0").build();
+		}
+		
+		
+		
+		
 		
 		
 	

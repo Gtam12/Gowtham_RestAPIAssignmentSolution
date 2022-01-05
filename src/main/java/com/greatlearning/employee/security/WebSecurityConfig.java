@@ -14,8 +14,11 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import springfox.documentation.swagger2.annotations.EnableSwagger2;
+
 
 @Configuration
+@EnableSwagger2
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 	
 	
@@ -27,7 +30,10 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 	        "/swagger-ui.html",
 	        "/v2/api-docs",
 	        "/webjars/**",
-	        "/h2-console/**"
+	        "/h2-console/**",
+	        "/configuration/security",
+	        "/swagger/**",
+	        "/configuration/ui"
 	};
 	
 	@Override
@@ -53,6 +59,9 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 				.antMatchers("/employee/addEmployee", "/employee/updateEmployee", "/employee/deleteEmployeeByid")
 				.hasRole("ADMIN")
 				.antMatchers("/employee/list", "/employee/sortedList", "/employee/findById", "/employee/findByName")
-				.hasAnyRole("USER", "ADMIN").antMatchers("/").permitAll().and().formLogin();
+				.hasAnyRole("USER", "ADMIN").antMatchers("/").permitAll()
+				.antMatchers("/swagger-resources/**").permitAll()
+				.anyRequest().authenticated()
+				.and().formLogin();
 	}
 }
